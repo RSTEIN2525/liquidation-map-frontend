@@ -1,4 +1,5 @@
-## CoinMag — Liquidation Map Frontend
+## CoinMag
+<img width="1552" height="1077" alt="Screenshot 2025-12-23 at 8 06 40 PM" src="https://github.com/user-attachments/assets/7ec78d56-eff6-4482-8f84-0c00c979bd8a" />
 
 CoinMag is a clean, fast web UI for exploring crypto liquidation “gravity” in two ways:
 
