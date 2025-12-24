@@ -1,171 +1,121 @@
-# Liquidation Map Frontend
+## CoinMag — Liquidation Map Frontend
 
-A modern, professional React application for visualizing cryptocurrency liquidation data with two interactive chart modes: Cross Sectional and Heatmap.
+CoinMag is a clean, fast web UI for exploring crypto liquidation “gravity” in two ways:
 
-## Features
+- **Cross Sectional**: a snapshot of liquidation liquidity above/below price (precise, order-level bars)
+- **Heatmap**: a time × price “liquidity field” that **stops rendering a level after price wipes it**
+- **Accuracy**: a live audit trail of bias predictions + outcomes (Supabase-backed)
 
-- **Two Visualization Modes**
-  - **Cross Sectional**: Histogram-style view showing liquidation clusters above and below current price
-  - **Heatmap**: Time-series intensity visualization of liquidation levels
-  
-- **Modern UI/UX**
-  - Clean, professional interface inspired by CoinAnk and CoinGlass
-  - Light and dark theme support with persistent user preference
-  - Responsive design that works on all screen sizes
-  - Real-time status indicator (Initializing/Ready/Error/Stale)
+### Live Routes
 
-- **Technical Stack**
-  - React 19 with TypeScript
-  - Vite for fast development and building
-  - TailwindCSS for styling
-  - ECharts for high-performance charts
-  - React Query for data fetching and caching
-  - React Router for navigation
-  - Zod for runtime type validation
+- **Cross Sectional**: `/cross-sectional`
+- **Heatmap**: `/heatmap`
+- **Prediction Accuracy**: `/accuracy`
+
+### What’s Special Here
+
+- **Raw liquidations support**: we render individual liquidation levels from `raw_liquidations` (not just aggregated bins).
+- **Consumption logic (heatmap)**: levels render from their `entry_time` until the first candle that crosses that price.
+- **Price overlay (heatmap)**: we overlay a real market price line (CoinGecko OHLC) so you can see price moving through liquidity.
+- **Theme-first UI**: deliberate spacing, minimal chrome, light/dark palettes, and a subtle API status indicator.
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+
 
-### Installation
+### Install
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
-3. Configure the API endpoint:
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` and set `VITE_API_BASE_URL` to your liquidation API endpoint.
+### Environment Variables
 
-### Development
+Create `.env` at the repo root:
 
-Start the development server:
+```env
+# Liquidation API
+# NOTE: Set this to the API base your backend expects. In many setups this includes /api
+VITE_API_BASE_URL="https://liquidation-api-1001101479084.asia-east1.run.app/api"
+
+# Supabase (Prediction Accuracy page)
+VITE_SUPABASE_PROJECT_URL="https://your-project.supabase.co"
+VITE_SUPABASE_API_KEY="your-anon-key"
+```
+
+### Run Dev Server
 
 ```bash
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`
+App runs at `http://localhost:5173`.
 
 ### Build
-
-Create a production build:
 
 ```bash
 npm run build
 ```
 
-Preview the production build:
-
 ```bash
 npm run preview
 ```
 
-## Project Structure
+---
 
-```
-src/
-├── components/           # Reusable UI components
-│   ├── charts/          # Chart components (CrossSectional, Heatmap)
-│   ├── AppShell.tsx     # Main layout with navbar
-│   ├── ModeTabs.tsx     # Chart mode switcher
-│   ├── StatusPill.tsx   # API status indicator
-│   └── ThemeToggle.tsx  # Light/dark theme toggle
-├── pages/               # Route pages
-│   ├── CrossSectionalPage.tsx
-│   └── HeatmapPage.tsx
-├── lib/                 # Core utilities
-│   ├── api.ts           # API client
-│   ├── queries.ts       # React Query hooks
-│   ├── schemas.ts       # Zod schemas and type definitions
-│   ├── theme.ts         # Theme management
-│   └── utils.ts         # Utility functions
-├── config/              # Configuration
-│   └── branding.ts      # App branding (name, logo, tagline)
-├── App.tsx              # Root component with routing
-├── main.tsx             # Entry point
-└── index.css            # Global styles and theme variables
-```
+## How The Charts Work
+
+### Cross Sectional
+
+- **Input**: `raw_liquidations` (preferred), falls back if unavailable.
+- **Rendering**: individual skinny bars at exact prices.
+- **Signal**: intensity via opacity scaling.
+- **UX**: purple dashed current-price marker + crosshair.
+
+### Heatmap
+
+- **Input**: `raw_liquidations` + CoinGecko OHLC.
+- **Rendering**: a pixel-grid density field built from raw liquidation levels.
+- **Consumption**: each liquidation contributes from `entry_time` until the first OHLC candle whose \([low, high]\) crosses that liquidation price.
+- **UX**: crosshair is enabled; tooltip popup is intentionally disabled to keep the view clean.
+
+---
+
+## Prediction Accuracy (Supabase)
+
+The `/accuracy` page:
+
+- fetches the last predictions from `predictions`
+- fetches summary stats from `prediction_stats`
+- subscribes to realtime updates via `postgres_changes`
+
+If you don’t configure Supabase env vars, the rest of the app works fine; Accuracy will just error or show empty state depending on setup.
+
+---
 
 ## Customization
 
 ### Branding
 
-Edit `src/config/branding.ts` to customize:
-- App name
-- Logo URL
-- Tagline
+Update `src/config/branding.ts` (app name, logo, tagline).
 
-```typescript
-export const BRANDING = {
-  APP_NAME: 'Your App Name',
-  LOGO_URL: '/path/to/logo.png',
-  TAGLINE: 'Your tagline',
-} as const;
-```
+### Theme
 
-### Theme Colors
+Update CSS variables in `src/index.css` for your light/dark palettes and chart colors.
 
-Customize colors in `src/index.css` by modifying CSS custom properties:
-- Light theme: `:root` selector
-- Dark theme: `.dark` selector
+---
 
-## API Integration
+## Tech Stack
 
-The app expects a liquidation map API endpoint that returns:
+- React + TypeScript + Vite
+- TailwindCSS
+- ECharts (`custom` series for high-control rendering)
+- React Router
+- TanStack Query
+- Zod
+- Supabase client (Accuracy)
 
-```json
-{
-  "summary": {
-    "price": 88834,
-    "open_interest": 12345,
-    "funding_rate": 0.01
-  },
-  "direction": {
-    "bias": "UP",
-    "upward_mag": 0.75,
-    "downward_mag": 0.25
-  },
-  "bins": [
-    {
-      "mid_price": 85000,
-      "intensity": 75.5,
-      "usd": 150.25,
-      "status": "ACTIVE"
-    }
-  ],
-  "timestamp": 1703260800
-}
-```
-
-## Features in Detail
-
-### Cross Sectional Chart
-- Displays liquidation clusters as vertical bars
-- Green bars: Short liquidations (above current price)
-- Red bars: Long liquidations (below current price)
-- Opacity represents intensity
-- Dimmed bars for cleared liquidations
-- Current price marker line
-
-### Heatmap Chart
-- Vertical price ladder with intensity coloring
-- Color gradient from low (blue) to high (orange) intensity
-- Current price indicator with label
-- Interactive tooltips with detailed information
-
-### Status Indicator
-- **Initializing**: Data is being fetched
-- **Ready**: Data is current and up-to-date
-- **Stale**: Cached data may be outdated (>50 minutes old)
-- **Error**: Failed to fetch data
-
-## License
-
-MIT

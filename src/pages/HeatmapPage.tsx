@@ -1,17 +1,38 @@
+import { useState } from 'react';
 import { useLiquidationMap } from '../lib/queries';
 import { getCurrentPrice, transformToHeatmap } from '../lib/schemas';
 import { HeatmapChart } from '../components/charts/HeatmapChart';
+import { FilterControls } from '../components/FilterControls';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import type { CustomMapParams } from '../lib/api';
 
 export function HeatmapPage() {
-  const { data, isLoading, isError, error } = useLiquidationMap();
+  // Filter state
+  const [ticker, setTicker] = useState('BTC');
+  const [lookbackDays, setLookbackDays] = useState(1);
+  const [exchanges, setExchanges] = useState(['binance', 'bybit', 'okx']);
+  
+  // Applied filters (only update on Apply button click)
+  const [appliedParams, setAppliedParams] = useState<CustomMapParams>({
+    ticker: 'BTC',
+    lookbackDays: 1,
+    exchanges: ['binance', 'bybit', 'okx'],
+  });
+
+  const { data, isLoading, isError, error } = useLiquidationMap(appliedParams);
+
+  const handleApply = () => {
+    setAppliedParams({
+      ticker,
+      lookbackDays,
+      exchanges,
+    });
+  };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[600px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-accent border-r-transparent mb-4"></div>
-          <p className="text-text-secondary">Loading liquidation data...</p>
-        </div>
+        <LoadingSpinner size={128} />
       </div>
     );
   }
@@ -37,50 +58,79 @@ export function HeatmapPage() {
   }
 
   const currentPrice = getCurrentPrice(data.summary);
-  const heatmapData = transformToHeatmap(data.bins);
+  const rawLiquidations = data.raw_liquidations || [];
 
   return (
-    <div className="space-y-4">
-      {/* Header Card */}
-      <div className="bg-surface rounded-lg border border-border p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-text-primary">
-              BTCUSDT Liquidation Heatmap
-            </h2>
-            <p className="text-sm text-text-secondary mt-1">
-              Time-series view of liquidation intensity
-            </p>
-          </div>
-          <div className="flex items-center gap-6">
-            {currentPrice && (
-              <div>
-                <div className="text-xs text-text-tertiary">Current Price</div>
-                <div className="text-lg font-semibold text-text-primary">
-                  ${currentPrice.toLocaleString()}
-                </div>
-              </div>
-            )}
+    <div className="flex gap-12 h-full">
+      {/* Left Sidebar - Filters (30%) */}
+      <div className="w-[30%] flex-shrink-0 flex flex-col h-full">
+        <FilterControls
+          ticker={ticker}
+          lookbackDays={lookbackDays}
+          exchanges={exchanges}
+          onTickerChange={setTicker}
+          onLookbackChange={setLookbackDays}
+          onExchangesChange={setExchanges}
+          onApply={handleApply}
+          isLoading={isLoading}
+        />
+      </div>
+
+      {/* Right Side - Chart (70%) */}
+      <div className="flex-1 min-w-0 flex flex-col h-full">
+        {/* Header Info */}
+        <div className="mb-6 pl-12">
+          <div className="flex items-start justify-between gap-8">
             <div>
-              <div className="text-xs text-text-tertiary">Bias</div>
-              <div className={`text-lg font-semibold ${
-                data.direction.bias === 'UP' ? 'text-green-500' :
-                data.direction.bias === 'DOWN' ? 'text-red-500' :
-                'text-text-secondary'
-              }`}>
-                {data.direction.bias}
+              <h2 className="text-2xl font-semibold text-text-primary mb-1">
+                {appliedParams.ticker}USDT Liquidation Heatmap
+              </h2>
+              <p className="text-sm text-text-secondary">
+                Time-series view of liquidation intensity
+              </p>
+            </div>
+            
+            {/* Stats - Right Side */}
+            <div className="flex items-center gap-8 flex-shrink-0">
+              {currentPrice && (
+                <div>
+                  <div className="text-xs text-text-tertiary uppercase tracking-wider mb-1">Current Price</div>
+                  <div className="text-xl font-semibold text-text-primary">
+                    ${currentPrice.toLocaleString()}
+                  </div>
+                </div>
+              )}
+              {data.summary.total_oi_usd && (
+                <div>
+                  <div className="text-xs text-text-tertiary uppercase tracking-wider mb-1">Open Interest</div>
+                  <div className="text-xl font-semibold text-text-primary">
+                    ${(data.summary.total_oi_usd / 1e9).toFixed(2)}B
+                  </div>
+                </div>
+              )}
+              <div>
+                <div className="text-xs text-text-tertiary uppercase tracking-wider mb-1">Bias</div>
+                <div className={`text-xl font-semibold ${
+                  data.direction.bias === 'UP' ? 'text-green-500' :
+                  data.direction.bias === 'DOWN' ? 'text-red-500' :
+                  'text-text-secondary'
+                }`}>
+                  {data.direction.bias}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Chart Card */}
-      <div className="bg-surface rounded-lg border border-border p-4">
-        <HeatmapChart
-          data={heatmapData}
-          currentPrice={currentPrice}
-        />
+        {/* Chart */}
+        <div className="flex-1">
+          <HeatmapChart
+            ticker={appliedParams.ticker}
+            lookbackDays={appliedParams.lookbackDays}
+            rawLiquidations={rawLiquidations}
+            currentPrice={currentPrice}
+          />
+        </div>
       </div>
     </div>
   );

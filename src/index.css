@@ -9,8 +9,8 @@
     --color-surface: 255 255 255;
     --color-border: 229 231 235;
     --color-text-primary: 17 24 39;
-    --color-text-secondary: 107 114 128;
-    --color-text-tertiary: 156 163 175;
+    --color-text-secondary: 75 85 99; /* Darker grey for better visibility */
+    --color-text-tertiary: 107 114 128; /* Darker grey for better visibility */
     --color-accent: 99 102 241;
     --color-accent-hover: 79 70 229;
     
@@ -26,8 +26,8 @@
 
   .dark {
     /* Dark theme colors */
-    --color-bg: 15 23 42;
-    --color-surface: 30 41 59;
+    --color-bg: 25 25 25; /* #191919 */
+    --color-surface: 25 25 25; /* #191919 */
     --color-border: 51 65 85;
     --color-text-primary: 248 250 252;
     --color-text-secondary: 203 213 225;
@@ -36,7 +36,7 @@
     --color-accent-hover: 165 180 252;
     
     /* Chart colors - dark theme */
-    --color-chart-bg: 30 41 59;
+    --color-chart-bg: 25 25 25; /* #191919 */
     --color-chart-text: 226 232 240;
     --color-chart-grid: 51 65 85;
     --color-chart-long: 248 113 113;
@@ -49,6 +49,34 @@
     background-color: rgb(var(--color-bg));
     color: rgb(var(--color-text-primary));
   }
+}
+
+@keyframes underlineExpand {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.05);
+  }
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 

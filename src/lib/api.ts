@@ -1,6 +1,6 @@
 import { LiquidationMapSchema, type LiquidationMap } from './schemas';
 
-const API_BASE = '/api'; // Will be proxied to VITE_API_BASE_URL
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://liquidation-api-1001101479084.asia-east1.run.app';
 
 export class ApiError extends Error {
   constructor(
@@ -13,18 +13,49 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchLiquidationMap(): Promise<LiquidationMap> {
+export interface CustomMapParams {
+  ticker: string;
+  lookbackDays: number;
+  exchanges?: string[];
+}
+
+export async function fetchLiquidationMap(params?: CustomMapParams): Promise<LiquidationMap> {
   try {
-    const response = await fetch(`${API_BASE}/liquidation-map`, {
+    let url = `${API_BASE}/liquidation-map`;
+    
+    // Use custom endpoint if params provided
+    if (params) {
+      const queryParams = new URLSearchParams({
+        ticker: params.ticker,
+        lookback_days: params.lookbackDays.toString(),
+      });
+      
+      if (params.exchanges && params.exchanges.length > 0) {
+        queryParams.append('exchanges', params.exchanges.join(','));
+      }
+      
+      url = `${API_BASE}/liquidation-map/custom?${queryParams}`;
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
       },
     });
 
-    if (!response.ok) {
+    if (response.status === 503) {
       throw new ApiError(
-        `Failed to fetch liquidation map: ${response.statusText}`,
+        'Data is loading, please wait a moment...',
+        503,
+        'Service Unavailable'
+      );
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new ApiError(
+        errorData.detail || `Failed to fetch liquidation map: ${response.statusText}`,
         response.status,
         response.statusText
       );
@@ -69,4 +100,5 @@ export async function checkApiStatus(): Promise<{ status: string }> {
     return { status: 'error' };
   }
 }
+
 

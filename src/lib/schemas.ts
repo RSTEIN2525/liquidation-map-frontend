@@ -8,11 +8,22 @@ export type BinStatus = z.infer<typeof BinStatus>;
 export const DirectionBias = z.enum(['UP', 'DOWN', 'UNBIASED']);
 export type DirectionBias = z.infer<typeof DirectionBias>;
 
+// Raw Liquidation Schema
+export const RawLiquidationSchema = z.object({
+  price: z.number(),
+  usd: z.number(),
+  side: z.string(), // 'long' or 'short'
+  status: BinStatus,
+  entry_time: z.number().optional(),
+});
+export type RawLiquidation = z.infer<typeof RawLiquidationSchema>;
+
 // Bin schema
 export const BinSchema = z.object({
+  bucket: z.string(),
   mid_price: z.number(),
   intensity: z.number().min(0).max(100),
-  usd: z.number(),
+  usd: z.number(), // Value in billions
   status: BinStatus,
 });
 export type Bin = z.infer<typeof BinSchema>;
@@ -30,9 +41,12 @@ export const SummarySchema = z.object({
   price: z.number().optional(),
   current_price: z.number().optional(),
   currentPrice: z.number().optional(),
-  close: z.number().optional(), // Binance API uses 'close' for current price
-  open_interest: z.number().optional(),
+  close: z.number().optional(),
+  total_oi_usd: z.number().optional(),
   funding_rate: z.number().optional(),
+  high: z.number().optional(),
+  low: z.number().optional(),
+  open_interest: z.number().optional(),
 }).passthrough();
 export type Summary = z.infer<typeof SummarySchema>;
 
@@ -41,8 +55,12 @@ export const LiquidationMapSchema = z.object({
   summary: SummarySchema,
   direction: DirectionSchema,
   bins: z.array(BinSchema),
+  raw_liquidations: z.array(RawLiquidationSchema).nullable().optional(),
   timestamp: z.number(),
-});
+}).transform((data) => ({
+  ...data,
+  raw_liquidations: data.raw_liquidations ?? undefined, // Convert null to undefined
+}));
 export type LiquidationMap = z.infer<typeof LiquidationMapSchema>;
 
 // Helper to safely extract current price from summary
@@ -89,4 +107,3 @@ export function transformToHeatmap(bins: Bin[]): HeatmapDataPoint[] {
     status: bin.status,
   }));
 }
-
